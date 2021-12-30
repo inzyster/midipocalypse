@@ -4,10 +4,31 @@ import * as Midi from 'jsmidgen';
 
 const mimeType = "audio/midi";
 
+function unicodeStringToTypedArray(s) {
+    var escstr = encodeURIComponent(s);
+    var binstr = escstr.replace(/%([0-9A-F]{2})/g, function (match, p1) {
+        return String.fromCharCode('0x' + p1);
+    });
+    var ua = new Uint8Array(binstr.length);
+    Array.prototype.forEach.call(binstr, function (ch, i) {
+        ua[i] = ch.charCodeAt(0);
+    });
+    return ua;
+}
+
+const sainitizeValue = (x) => {
+    if (x < 32) {
+        return x + 32;
+    } else if (x >= 127) {
+        return sainitizeValue(x - 127);
+    }
+    return x;
+};
+
 export default function MidiForm(props) {
     const [text, setText] = useState('');
     const [dataUrl, setDataUrl] = useState('');
-    const attachmentName = `${uuid()}.mid`;
+    const attachmentName = `${uuid().replace('-', '').substring(0, 8)}.mid`;
 
     const handleSubmit = (evt) => {
         evt.preventDefault();
@@ -21,9 +42,12 @@ export default function MidiForm(props) {
             file.addTrack(track);
             track.setTempo(120);
             track.setInstrument(0, 0x0);
-            track.addNote(0, 'c4', 128);
-            track.addNote(0, 'd4', 128);
-            track.addNote(0, 'e4', 128);
+
+            const bin = unicodeStringToTypedArray(text).map(sainitizeValue);
+
+            for (let n = 0; n < bin.length; n++) {
+                track.addNote(0, bin[n], 32);
+            }
 
             const rawDataStr = file.toBytes();
             const rawData = new Uint8Array(rawDataStr.length);

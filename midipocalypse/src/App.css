@@ -41,3 +41,8 @@
 .App-link:visited {
   color: #61dafb;
 }
+
+.error {
+  display: block;
+  color: red;
+}

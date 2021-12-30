@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/midipocalypse/static/css/main.3ece9743.css",
-    "main.js": "/midipocalypse/static/js/main.e93d734a.js",
+    "main.css": "/midipocalypse/static/css/main.4f282529.css",
+    "main.js": "/midipocalypse/static/js/main.441b35f1.js",
     "static/js/787.436baefd.chunk.js": "/midipocalypse/static/js/787.436baefd.chunk.js",
     "index.html": "/midipocalypse/index.html",
-    "main.3ece9743.css.map": "/midipocalypse/static/css/main.3ece9743.css.map",
-    "main.e93d734a.js.map": "/midipocalypse/static/js/main.e93d734a.js.map",
+    "main.4f282529.css.map": "/midipocalypse/static/css/main.4f282529.css.map",
+    "main.441b35f1.js.map": "/midipocalypse/static/js/main.441b35f1.js.map",
     "787.436baefd.chunk.js.map": "/midipocalypse/static/js/787.436baefd.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.3ece9743.css",
-    "static/js/main.e93d734a.js"
+    "static/css/main.4f282529.css",
+    "static/js/main.441b35f1.js"
   ]
 }

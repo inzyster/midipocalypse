@@ -3,18 +3,15 @@ import { v4 as uuid } from 'uuid';
 import * as Midi from 'jsmidgen';
 
 const mimeType = "audio/midi";
+const smallestDuration = Midi.DEFAULT_DURATION * 4 / 64;
 
-function unicodeStringToTypedArray(s) {
-    var escstr = encodeURIComponent(s);
-    var binstr = escstr.replace(/%([0-9A-F]{2})/g, function (match, p1) {
-        return String.fromCharCode('0x' + p1);
-    });
-    var ua = new Uint8Array(binstr.length);
-    Array.prototype.forEach.call(binstr, function (ch, i) {
-        ua[i] = ch.charCodeAt(0);
-    });
+const unicodeStringToTypedArray = (s) => {
+    const escstr = encodeURIComponent(s);
+    const binstr = escstr.replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1));
+    const ua = new Uint8Array(binstr.length);
+    [...binstr].forEach((ch, idx) => ua[idx] = ch.charCodeAt(0));
     return ua;
-}
+};
 
 const sainitizeValue = (x) => {
     if (x < 32) {
@@ -41,8 +38,6 @@ const decToBin = (x) => {
     return result;
 };
 
-const sixtyForth = 512 / 64;
-
 const processRawData = (data) => {
     let binary = '';
     const targetLength = Math.ceil(data.length * 7 / 12) * 12;
@@ -58,14 +53,11 @@ const processRawData = (data) => {
     }
     const result = [];
     for (let n = 0; n < binary.length; n += 12) {
-        //console.log(`binary = ${binary.substring(n, n + 12)}`);
         const durationData = parseInt(binary.substring(n, n + 5), 2);
-        //console.log("durationData = ", durationData);
         const pitchData = sainitizeValue(parseInt(binary.substring(n + 5, n + 12), 2)) - 10;
         const isRest = (durationData & 0b00001) > 0;
         const isDot = (durationData & 0b00010) > 0;
-        const duration = (sixtyForth << (durationData >>> 2)) * (isDot ? 1 : 1.5);
-        //console.log(`isRest = ${isRest}, isDot = ${isDot}, duration = ${duration}`);
+        const duration = (smallestDuration << (durationData >>> 2)) * (isDot ? 1 : 1.5);
         result.push(new Note(pitchData, duration, isRest));
     }
     return result;
@@ -132,18 +124,16 @@ export default function MidiForm(props) {
     };
 
     return (
-        <>
-            <form onSubmit={handleSubmit}>
-                <textarea value={text} onChange={(evt) => setText(evt.target.value)} rows={15} cols={40}>
-                </textarea>
-                <button type="submit">Agoń</button>
-                {dataUrl &&
-                    <a className="App-link" href={dataUrl} download={attachmentName}>Ściągń</a>}
-                {error &&
-                    <h4 className="error">{error}</h4>}
-                {diagData &&
-                    <pre className="diag">{diagData}</pre>}
-            </form>
-        </>
+        <form onSubmit={handleSubmit}>
+            <textarea value={text} onChange={(evt) => setText(evt.target.value)} rows={15} cols={40}>
+            </textarea>
+            <button type="submit">Agoń</button>
+            {dataUrl &&
+                <a className="App-link" href={dataUrl} download={attachmentName}>Ściągń</a>}
+            {error &&
+                <h4 className="error">{error}</h4>}
+            {diagData &&
+                <pre className="diag">{diagData}</pre>}
+        </form>
     );
 }

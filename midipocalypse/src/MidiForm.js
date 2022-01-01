@@ -4,20 +4,29 @@ import * as Midi from 'jsmidgen';
 
 const mimeType = "audio/midi";
 const smallestDuration = Midi.DEFAULT_DURATION * 4 / 64;
+const expectedInputChunkSize = 8;
+const targetChunkSize = 11;
+const controlDataChunkSize = 4;
 
 const unicodeStringToTypedArray = (s) => {
     const escstr = encodeURIComponent(s);
     const binstr = escstr.replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1));
     const ua = new Uint8Array(binstr.length);
-    [...binstr].forEach((ch, idx) => ua[idx] = ch.charCodeAt(0));
+    let idx = 0;
+    for (const ch in binstr) {
+        for (let n = 0; n < ch.length; n++) {
+            ua[idx] = ch.charCodeAt(n);
+            idx++;
+        }
+    }
     return ua;
 };
 
 const sainitizeValue = (x) => {
-    if (x < 32) {
-        return x + 32;
-    } else if (x >= 127) {
-        return sainitizeValue(x - 127);
+    if (x < 21) {
+        return x + 21;
+    } else if (x >= 108) {
+        return sainitizeValue(x - 108);
     }
     return x;
 };
@@ -32,15 +41,15 @@ class Note {
 
 const decToBin = (x) => {
     let result = (x >>> 0).toString(2);
-    if (result.length < 7) {
-        result = '0'.repeat(7 - result.length) + result;
+    if (result.length < expectedInputChunkSize) {
+        result = '0'.repeat(expectedInputChunkSize - result.length) + result;
     }
     return result;
 };
 
 const processRawData = (data) => {
     let binary = '';
-    const targetLength = Math.ceil(data.length * 7 / 12) * 12;
+    const targetLength = Math.ceil(data.length * expectedInputChunkSize / targetChunkSize) * targetChunkSize;
     for (let i = 0; i < data.length; i++) {
         binary += decToBin(data[i]);
     }
@@ -48,16 +57,17 @@ const processRawData = (data) => {
     if (padding > 0) {
         binary += '0'.repeat(padding);
     }
-    if ((binary.length % 12) !== 0) {
+    if ((binary.length % targetChunkSize) !== 0) {
         throw "wrong binary length";
     }
     const result = [];
-    for (let n = 0; n < binary.length; n += 12) {
-        const durationData = parseInt(binary.substring(n, n + 5), 2);
-        const pitchData = sainitizeValue(parseInt(binary.substring(n + 5, n + 12), 2)) - 10;
-        const isRest = (durationData & 0b00001) > 0;
-        const isDot = (durationData & 0b00010) > 0;
-        const duration = (smallestDuration << (durationData >>> 2)) * (isDot ? 1 : 1.5);
+    for (let n = 0; n < binary.length; n += targetChunkSize) {
+        const chunk = binary.substring(n, n + targetChunkSize);
+        const durationData = parseInt(chunk.substring(0, controlDataChunkSize), 2);
+        const pitchData = sainitizeValue(parseInt(chunk.substring(controlDataChunkSize, targetChunkSize), 2));
+        const isRest = [...decToBin([...chunk].filter(c => c === '1').length)].filter(c => c === '1').length === 1;
+        const isDot = (durationData & 1) > 0;
+        const duration = (smallestDuration << (durationData >>> 1)) * (isDot ? 1 : 1.5);
         result.push(new Note(pitchData, duration, isRest));
     }
     return result;
@@ -85,7 +95,7 @@ export default function MidiForm(props) {
             track.setTempo(120);
             track.setInstrument(0, 0x0);
 
-            const bin = unicodeStringToTypedArray(text).map(sainitizeValue);
+            const bin = unicodeStringToTypedArray(text);
             let noteData = [];
             try {
                 noteData = processRawData(bin);
